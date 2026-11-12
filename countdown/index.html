@@ -48,14 +48,23 @@
 
   .toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
     padding-bottom:clamp(14px,2.2vw,18px);border-bottom:1px dashed #ece5d9}
-  .date-field{display:flex;align-items:center;gap:9px;padding:8px 13px;border:1px solid #e8e1d5;
-    border-radius:12px;background:#fffefb;transition:border-color .16s,box-shadow .16s}
+  .date-field{position:relative;display:flex;align-items:center;gap:4px;padding:5px 5px 5px 12px;
+    border:1px solid #e8e1d5;border-radius:12px;background:#fffefb;
+    transition:border-color .16s,box-shadow .16s}
   .date-field:focus-within{border-color:#e0b9a8;box-shadow:0 0 0 3px rgba(201,85,47,.10)}
-  .date-field svg{width:15px;height:15px;color:#b0a798;flex:none}
-  .date-field input{border:0;background:transparent;outline:none;font-family:inherit;
-    font-size:13.5px;color:#3b3630;font-variant-numeric:tabular-nums;letter-spacing:.02em;padding:0;width:126px}
-  input[type=date]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:.5;margin-left:2px}
-  input[type=date]::-webkit-calendar-picker-indicator:hover{opacity:.9}
+  #dt{border:0;background:transparent;outline:none;font-family:inherit;font-size:13.5px;
+    color:#3b3630;font-variant-numeric:tabular-nums;letter-spacing:.04em;padding:0;width:98px}
+  #dt::placeholder{color:#c6beb0;letter-spacing:.04em}
+  .picker-btn{flex:none;width:27px;height:27px;display:grid;place-items:center;
+    border-radius:8px;background:#f6f1e7;color:#a89d8c;pointer-events:none;
+    transition:background .14s,color .14s}
+  .picker-btn svg{width:14px;height:14px}
+  .date-field:hover .picker-btn{background:#f1e9db;color:#c9552f}
+  .native-picker{position:absolute;right:5px;top:5px;width:27px;height:27px;z-index:2;
+    opacity:0;border:0;padding:0;cursor:pointer;font-size:0}
+  .date-field.invalid{border-color:#e2a08c;box-shadow:0 0 0 3px rgba(201,85,47,.12);animation:shake .3s}
+  .date-field.invalid #dt{color:#c9552f}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
 
   .chips{display:flex;gap:7px;flex-wrap:wrap;margin-left:auto}
   .chips button{font-family:inherit;font-size:12px;color:#7d766a;background:#f7f3ea;border:1px solid transparent;
@@ -140,15 +149,19 @@
 
   <main class="board">
     <div class="toolbar">
-      <label class="date-field">
-        <input type="date" id="di" aria-label="选择日期" />
-      </label>
-      <div class="chips" id="chips">
-        <button type="button" data-act="today">今天</button>
-        <button type="button" data-date="2026-01-01">2026-01-01</button>
-        <button type="button" data-date="2026-12-31">2026-12-31</button>
-        <button type="button" data-act="plus100">100 天后</button>
+      <div class="date-field" id="dateField">
+        <input type="text" id="dt" inputmode="numeric" autocomplete="off" spellcheck="false"
+               placeholder="1995-12-23" aria-label="直接输入日期，如 1995-12-23" />
+        <span class="picker-btn" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <rect x="3.6" y="5.4" width="16.8" height="15" rx="3.4" stroke="currentColor" stroke-width="1.7"/>
+            <path d="M3.6 10h16.8" stroke="currentColor" stroke-width="1.7"/>
+            <path d="M8 3.4v3.2M16 3.4v3.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <input type="date" id="picker" class="native-picker" tabindex="-1" aria-label="打开日历选择" />
       </div>
+      <div class="chips" id="chips"></div>
     </div>
 
     <div class="body">
@@ -188,7 +201,9 @@
   var WEEK = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
   var DOW  = ['一', '二', '三', '四', '五', '六', '日'];
 
-  var di        = document.getElementById('di');
+  var dt        = document.getElementById('dt');
+  var picker    = document.getElementById('picker');
+  var dateField = document.getElementById('dateField');
   var statusEl  = document.getElementById('status');
   var bigEl     = document.getElementById('big');
   var targetEl  = document.getElementById('targetLine');
@@ -204,6 +219,18 @@
   var viewY = target.getFullYear();
   var viewM = target.getMonth();
 
+  /* 法定节假日：元旦 / 春节 / 清明 / 劳动节 / 端午 / 中秋 / 国庆 */
+  var HOLIDAYS = [
+    ['元旦', 2026, 1, 1],  ['春节', 2026, 2, 17], ['清明', 2026, 4, 5],
+    ['劳动节', 2026, 5, 1], ['端午', 2026, 6, 19], ['中秋', 2026, 9, 25], ['国庆', 2026, 10, 1],
+    ['元旦', 2027, 1, 1],  ['春节', 2027, 2, 6],  ['清明', 2027, 4, 5],
+    ['劳动节', 2027, 5, 1], ['端午', 2027, 6, 9],  ['中秋', 2027, 9, 15], ['国庆', 2027, 10, 1],
+    ['元旦', 2028, 1, 1],  ['春节', 2028, 1, 26], ['清明', 2028, 4, 4],
+    ['劳动节', 2028, 5, 1], ['端午', 2028, 5, 28], ['中秋', 2028, 10, 3], ['国庆', 2028, 10, 1],
+    ['元旦', 2029, 1, 1],  ['春节', 2029, 2, 13], ['清明', 2029, 4, 4],
+    ['劳动节', 2029, 5, 1], ['端午', 2029, 6, 16], ['中秋', 2029, 9, 22], ['国庆', 2029, 10, 1]
+  ];
+
   function p2(n) { return (n < 10 ? '0' : '') + n; }
   function strip(d) { var x = new Date(d); x.setHours(0, 0, 0, 0); return x; }
   function iso(d) { return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()); }
@@ -213,11 +240,64 @@
     var d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
     return isNaN(d.getTime()) ? null : d;
   }
+  function isLeap(y) { return (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0; }
+  function daysInMonth(y, mo) {
+    return mo === 2 ? (isLeap(y) ? 29 : 28)
+                    : [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][mo - 1];
+  }
+  function makeDate(y, mo, d) {
+    if (!(y >= 1 && y <= 9999) || !(mo >= 1 && mo <= 12)) return null;
+    if (!(d >= 1 && d <= daysInMonth(y, mo))) return null;
+    var x = new Date(2000, 0, 1);
+    x.setFullYear(y, mo - 1, d);     // 避免 0-99 被当成 19xx
+    x.setHours(0, 0, 0, 0);
+    return isNaN(x.getTime()) ? null : x;
+  }
+  /* 宽松解析：1995 / 1995-1 / 1995-1-1 / 1995/01/01 / 19950101 / 1995年1月1日 */
+  function parseLoose(s) {
+    if (s === null || s === undefined) return null;
+    s = String(s).trim()
+      .replace(/[年月]/g, '-')
+      .replace(/[日号]/g, '')
+      .replace(/[\s./\\]+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-/, '').replace(/-$/, '');
+    if (!s) return null;
+    var m;
+    if ((m = /^(\d{4})$/.exec(s))) return makeDate(+m[1], 1, 1);
+    if ((m = /^(\d{4})-(\d{1,2})$/.exec(s))) return makeDate(+m[1], +m[2], 1);
+    if ((m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(s))) return makeDate(+m[1], +m[2], +m[3]);
+    if ((m = /^(\d{4})(\d{1,2})(\d{1,2})$/.exec(s))) return makeDate(+m[1], +m[2], +m[3]);
+    return null;
+  }
   function dayDiff(a, b) {
     return Math.round((Date.UTC(a.getFullYear(), a.getMonth(), a.getDate()) -
                        Date.UTC(b.getFullYear(), b.getMonth(), b.getDate())) / 86400000);
   }
   function addDays(d, n) { var x = new Date(d); x.setDate(x.getDate() + n); return strip(x); }
+
+  function upcomingHolidays(n) {
+    var list = [];
+    for (var i = 0; i < HOLIDAYS.length; i++) {
+      var h = HOLIDAYS[i];
+      var d = new Date(h[1], h[2] - 1, h[3]);
+      if (d >= today) list.push({ name: h[0], date: d });
+    }
+    list.sort(function (a, b) { return a.date - b.date; });
+    return list.slice(0, n);
+  }
+
+  var chipSig = '';
+  function buildChips() {
+    var hs = upcomingHolidays(3);
+    var sig = hs.map(function (h) { return h.name + iso(h.date); }).join('|');
+    if (sig === chipSig) return;
+    chipSig = sig;
+    chips.innerHTML = hs.map(function (h) {
+      return '<button type="button" data-date="' + iso(h.date) + '">' + h.name + ' ' +
+        p2(h.date.getMonth() + 1) + '-' + p2(h.date.getDate()) + '</button>';
+    }).join('');
+  }
 
   function renderCal() {
     calTitle.textContent = viewY + ' 年 ' + (viewM + 1) + ' 月';
@@ -276,7 +356,9 @@
     stDoy.textContent = doy + ' 天';
 
     /* 输入框与快捷项状态 */
-    if (di.value !== iso(target)) di.value = iso(target);
+    if (document.activeElement !== dt) dt.value = iso(target);
+    picker.value = iso(target);
+    buildChips();
     for (var i = 0; i < chips.children.length; i++) {
       var b = chips.children[i];
       var on = b.dataset.date === iso(target);
@@ -294,17 +376,49 @@
   }
 
   /* 交互 */
-  di.addEventListener('change', function () {
-    var d = parseISO(di.value);
-    if (d) setTarget(d); else render();
+  var badTimer = null;
+  function applyTyped(reportBad) {
+    var d = parseLoose(dt.value);
+    if (d) { dateField.classList.remove('invalid'); setTarget(d); return true; }
+    if (reportBad) {
+      dateField.classList.add('invalid');
+      dt.value = iso(target);
+      clearTimeout(badTimer);
+      badTimer = setTimeout(function () { dateField.classList.remove('invalid'); }, 900);
+    }
+    return false;
+  }
+
+  dt.addEventListener('input', function () {
+    dateField.classList.remove('invalid');
+    applyTyped(false);                 // 能解析就即时生效，不打扰还在输入的人
+  });
+  dt.addEventListener('blur', function () {
+    applyTyped(true);
+    dt.value = iso(target);
+  });
+  dt.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      applyTyped(true);
+      dt.value = iso(target);
+      dt.blur();
+    } else if (e.key === 'Escape') {
+      dt.value = iso(target);
+      dateField.classList.remove('invalid');
+      dt.blur();
+    }
+  });
+
+  picker.addEventListener('change', function () {
+    var d = parseISO(picker.value);
+    if (d) setTarget(d);
   });
 
   chips.addEventListener('click', function (e) {
     var b = e.target.closest('button');
-    if (!b) return;
-    if (b.dataset.date) { setTarget(parseISO(b.dataset.date)); return; }
-    if (b.dataset.act === 'today') { setTarget(new Date()); return; }
-    if (b.dataset.act === 'plus100') { setTarget(addDays(new Date(), 100)); return; }
+    if (!b || !b.dataset.date) return;
+    setTarget(parseISO(b.dataset.date));
   });
 
   cal.addEventListener('click', function (e) {
