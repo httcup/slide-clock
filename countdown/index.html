@@ -94,11 +94,11 @@
   .target-line{margin-top:12px;font-size:13px;color:#8f8879;letter-spacing:.01em}
   .target-line b{color:#4a4640;font-weight:600}
 
-  .stats{display:flex;gap:clamp(16px,3vw,38px);flex-wrap:wrap;
-    margin-top:clamp(18px,2.8vw,28px);padding-top:clamp(15px,2.4vw,22px);border-top:1px dashed #ece5d9}
-  .stat{display:flex;flex-direction:column;gap:5px}
+  .stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px 20px;
+    margin-top:clamp(18px,2.8vw,26px);padding-top:clamp(15px,2.4vw,20px);border-top:1px dashed #ece5d9}
+  .stat{display:flex;flex-direction:column;gap:5px;min-width:0}
   .stat span{font-size:11px;color:#b3aa9b;letter-spacing:.08em}
-  .stat b{font-size:13.5px;font-weight:600;color:#4a4640;font-variant-numeric:tabular-nums}
+  .stat b{font-size:13.5px;font-weight:600;color:#4a4640;font-variant-numeric:tabular-nums;white-space:nowrap}
 
   .cal-wrap{background:#fbf8f2;border:1px solid #f0e9dd;border-radius:20px;padding:13px}
   .cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
@@ -183,6 +183,7 @@
         <div class="big" id="big"><b>49</b><i>天</i></div>
         <div class="target-line" id="targetLine">2026 年 12 月 31 日 · 周四</div>
         <div class="stats">
+          <div class="stat"><span>相 距</span><b id="stYMD">1 个月 19 天</b></div>
           <div class="stat"><span>折 合</span><b id="stWeeks">7 周 0 天</b></div>
           <div class="stat"><span>约</span><b id="stMonths">1 个月 19 天</b></div>
           <div class="stat"><span>一年中的第</span><b id="stDoy">365 天</b></div>
@@ -224,6 +225,7 @@
   var bigEl     = document.getElementById('big');
   var targetEl  = document.getElementById('targetLine');
   var stWeeks   = document.getElementById('stWeeks');
+  var stYMD     = document.getElementById('stYMD');
   var stMonths  = document.getElementById('stMonths');
   var stDoy     = document.getElementById('stDoy');
   var cal       = document.getElementById('cal');
@@ -291,6 +293,21 @@
                        Date.UTC(b.getFullYear(), b.getMonth(), b.getDate())) / 86400000);
   }
   function addDays(d, n) { var x = new Date(d); x.setDate(x.getDate() + n); return strip(x); }
+
+  /* a <= b：相差几年几个月几天（借位按上一个月的实际天数） */
+  function ymdDiff(a, b) {
+    var y = b.getFullYear() - a.getFullYear();
+    var m = b.getMonth() - a.getMonth();
+    var d = b.getDate() - a.getDate();
+    if (d < 0) { m -= 1; d += new Date(b.getFullYear(), b.getMonth(), 0).getDate(); }
+    if (m < 0) { y -= 1; m += 12; }
+    return { y: y, m: m, d: d };
+  }
+  function fmtYMD(o) {
+    if (o.y) return o.y + ' 年 ' + o.m + ' 个月 ' + o.d + ' 天';
+    if (o.m) return o.m + ' 个月 ' + o.d + ' 天';
+    return o.d + ' 天';
+  }
 
   function upcomingHolidays(n) {
     var list = [];
@@ -367,6 +384,7 @@
     if (tmp > to) { mo -= 1; tmp = new Date(from.getFullYear(), from.getMonth() + mo, from.getDate()); }
     var rest = dayDiff(to, tmp);
     stMonths.textContent = (mo > 0 ? mo + ' 个月 ' : '') + rest + ' 天';
+    stYMD.textContent = fmtYMD(ymdDiff(from, to));
 
     var doy = dayDiff(target, new Date(target.getFullYear(), 0, 1)) + 1;
     stDoy.textContent = doy + ' 天';
