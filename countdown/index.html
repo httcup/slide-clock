@@ -52,10 +52,15 @@
     border:1px solid #e8e1d5;border-radius:12px;background:#fffefb;
     transition:border-color .16s,box-shadow .16s}
   .date-field:focus-within{border-color:#e0b9a8;box-shadow:0 0 0 3px rgba(201,85,47,.10)}
-  #dt{border:0;background:transparent;outline:none;font-family:inherit;font-size:13.5px;
-    color:#3b3630;font-variant-numeric:tabular-nums;letter-spacing:.04em;padding:0;width:98px}
-  #dt::placeholder{color:#c6beb0;letter-spacing:.04em}
-  .picker-btn{flex:none;width:27px;height:27px;display:grid;place-items:center;
+  .segs{display:flex;align-items:center;gap:0}
+  .segs input{border:0;background:transparent;outline:none;font-family:inherit;font-size:13.5px;
+    color:#3b3630;font-variant-numeric:tabular-nums;letter-spacing:.05em;padding:3px 0;
+    text-align:center;border-radius:5px;transition:background .14s}
+  .segs input:focus{background:#f8f3ea}
+  #iY{width:38px}#iM{width:22px}#iD{width:22px}
+  .segs .sep{color:#bdb3a2;font-size:12px;line-height:1;margin:0 1px;-webkit-user-select:none;user-select:none}
+  .segs input::placeholder{color:#cfc7b8;letter-spacing:.02em}
+  .picker-btn{flex:none;width:27px;height:27px;display:grid;place-items:center;margin-left:5px;
     border-radius:8px;background:#f6f1e7;color:#a89d8c;pointer-events:none;
     transition:background .14s,color .14s}
   .picker-btn svg{width:14px;height:14px}
@@ -150,8 +155,16 @@
   <main class="board">
     <div class="toolbar">
       <div class="date-field" id="dateField">
-        <input type="text" id="dt" inputmode="numeric" autocomplete="off" spellcheck="false"
-               placeholder="1995-12-23" aria-label="直接输入日期，如 1995-12-23" />
+        <div class="segs">
+          <input id="iY" inputmode="numeric" maxlength="4" placeholder="YYYY"
+                 autocomplete="off" spellcheck="false" aria-label="年" />
+          <span class="sep">-</span>
+          <input id="iM" inputmode="numeric" maxlength="2" placeholder="MM"
+                 autocomplete="off" spellcheck="false" aria-label="月" />
+          <span class="sep">-</span>
+          <input id="iD" inputmode="numeric" maxlength="2" placeholder="DD"
+                 autocomplete="off" spellcheck="false" aria-label="日" />
+        </div>
         <span class="picker-btn" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none">
             <rect x="3.6" y="5.4" width="16.8" height="15" rx="3.4" stroke="currentColor" stroke-width="1.7"/>
@@ -201,7 +214,10 @@
   var WEEK = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
   var DOW  = ['一', '二', '三', '四', '五', '六', '日'];
 
-  var dt        = document.getElementById('dt');
+  var iY        = document.getElementById('iY');
+  var iM        = document.getElementById('iM');
+  var iD        = document.getElementById('iD');
+  var segs      = [iY, iM, iD];
   var picker    = document.getElementById('picker');
   var dateField = document.getElementById('dateField');
   var statusEl  = document.getElementById('status');
@@ -356,7 +372,7 @@
     stDoy.textContent = doy + ' 天';
 
     /* 输入框与快捷项状态 */
-    if (document.activeElement !== dt) dt.value = iso(target);
+    syncSegs();
     picker.value = iso(target);
     buildChips();
     for (var i = 0; i < chips.children.length; i++) {
@@ -375,39 +391,110 @@
     try { history.replaceState(null, '', '#' + iso(target)); } catch (e) {}
   }
 
-  /* 交互 */
+  /* 交互：年 / 月 / 日 分段输入，填满自动跳下一段 */
   var badTimer = null;
-  function applyTyped(reportBad) {
-    var d = parseLoose(dt.value);
-    if (d) { dateField.classList.remove('invalid'); setTarget(d); return true; }
-    if (reportBad) {
-      dateField.classList.add('invalid');
-      dt.value = iso(target);
-      clearTimeout(badTimer);
-      badTimer = setTimeout(function () { dateField.classList.remove('invalid'); }, 900);
-    }
-    return false;
+  var normTimer = null;
+
+  function onlyDigits(s, max) { return String(s || '').replace(/\D/g, '').slice(0, max); }
+  function focusSeg(el) { if (!el) return; el.focus(); try { el.select(); } catch (e) {} }
+  function fieldFocused() { return segs.indexOf(document.activeElement) > -1; }
+
+  function writeSegs() {
+    iY.value = target.getFullYear();
+    iM.value = p2(target.getMonth() + 1);
+    iD.value = p2(target.getDate());
+  }
+  function syncSegs() { if (!fieldFocused()) writeSegs(); }
+
+  function readSegs() {
+    var y = onlyDigits(iY.value, 4);
+    if (y.length < 4) return null;                       // 年份没输完先不动
+    var m = onlyDigits(iM.value, 2);
+    var d = onlyDigits(iD.value, 2);
+    return makeDate(+y, m ? +m : 1, d ? +d : 1);         // 只输到年 / 月就按 1 号算
   }
 
-  dt.addEventListener('input', function () {
-    dateField.classList.remove('invalid');
-    applyTyped(false);                 // 能解析就即时生效，不打扰还在输入的人
-  });
-  dt.addEventListener('blur', function () {
-    applyTyped(true);
-    dt.value = iso(target);
-  });
-  dt.addEventListener('keydown', function (e) {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      applyTyped(true);
-      dt.value = iso(target);
-      dt.blur();
-    } else if (e.key === 'Escape') {
-      dt.value = iso(target);
+  function commitLive() {
+    var d = readSegs();
+    if (d) { dateField.classList.remove('invalid'); setTarget(d); }
+  }
+
+  function normalize() {
+    var y = onlyDigits(iY.value, 4);
+    if (!y) { dateField.classList.remove('invalid'); writeSegs(); return; }
+    var d = readSegs();
+    if (d) {
       dateField.classList.remove('invalid');
-      dt.blur();
+      setTarget(d);
+      writeSegs();
+      return;
     }
+    dateField.classList.add('invalid');                  // 日期不存在：抖动并还原
+    writeSegs();
+    clearTimeout(badTimer);
+    badTimer = setTimeout(function () { dateField.classList.remove('invalid'); }, 900);
+  }
+
+  iY.addEventListener('input', function () {
+    iY.value = onlyDigits(iY.value, 4);
+    if (iY.value.length >= 4) focusSeg(iM);              // 年输完 → 跳月
+    commitLive();
+  });
+
+  iM.addEventListener('input', function () {
+    var v = onlyDigits(iM.value, 2);
+    if (v.length === 1 && +v >= 2) { v = '0' + v; focusSeg(iD); }   // 单数字月份自动补 0
+    else if (v.length >= 2) { focusSeg(iD); }                       // 月输完 → 跳日
+    iM.value = v;
+    commitLive();
+  });
+
+  iD.addEventListener('input', function () {
+    var v = onlyDigits(iD.value, 2);
+    if (v.length === 1 && +v >= 4) v = '0' + v;          // 单数字日期自动补 0
+    iD.value = v;
+    commitLive();
+  });
+
+  segs.forEach(function (el, idx) {
+    el.addEventListener('focus', function () { try { el.select(); } catch (e) {} });
+
+    el.addEventListener('keydown', function (e) {
+      if (e.key === 'Backspace' && el.value === '' && idx > 0) {
+        e.preventDefault();
+        var prev = segs[idx - 1];
+        prev.value = prev.value.slice(0, -1);
+        focusSeg(prev);
+        commitLive();
+      } else if (e.key === 'ArrowLeft' && idx > 0 && el.selectionStart === 0) {
+        e.preventDefault(); focusSeg(segs[idx - 1]);
+      } else if (e.key === 'ArrowRight' && idx < 2 && el.selectionStart === el.value.length) {
+        e.preventDefault(); focusSeg(segs[idx + 1]);
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        normalize();
+        el.blur();
+      } else if (e.key === 'Escape') {
+        writeSegs();
+        dateField.classList.remove('invalid');
+        el.blur();
+      }
+    });
+
+    el.addEventListener('blur', function () {
+      clearTimeout(normTimer);
+      normTimer = setTimeout(function () { if (!fieldFocused()) normalize(); }, 0);
+    });
+
+    el.addEventListener('paste', function (e) {
+      var txt = (e.clipboardData || window.clipboardData).getData('text');
+      var p = parseLoose(txt);
+      if (!p) return;
+      e.preventDefault();
+      setTarget(p);
+      writeSegs();
+      el.blur();
+    });
   });
 
   picker.addEventListener('change', function () {
