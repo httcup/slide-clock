@@ -269,9 +269,8 @@
     document.getElementById('dSolar').textContent = sel.y + ' 年 ' + sel.m + ' 月 ' + sel.d + ' 日';
     document.getElementById('dWeek').textContent = WEEK[dateObj.getDay()];
 
-    var lunarYear = text(function () { return l.getLunarMonth().getYear(); }, String(sel.y));
     document.getElementById('dLunar').textContent =
-      (S.SixtyCycle ? text(function () { return l.getYearSixtyCycle().toString(); }) : '') + '年 ' +
+      text(function () { return l.getYearSixtyCycle().toString(); }) + '年 ' +
       text(function () { return l.getLunarMonth().getName(); }) +
       text(function () { return l.getName(); });
 
