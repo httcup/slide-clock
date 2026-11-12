@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>滑动时钟 · 算出现在到那一刻还有多久</title>
+<title>万年历 · 倒数日 · 预约倒计时</title>
 <meta name="description" content="拖动 24 小时表盘选一个时刻，立刻算出从现在到那一刻还隔多少小时、多少分钟。范围覆盖今天到次日 23:59。" />
 <meta name="theme-color" content="#f7f5f1" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Ccircle%20cx='16'%20cy='16'%20r='12.5'%20fill='%23fffdfa'%20stroke='%23c9552f'%20stroke-width='2'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='3.2'%20fill='%23c9552f'/%3E%3C/svg%3E" />
@@ -93,14 +93,13 @@
     100%{box-shadow:0 0 0 0 rgba(201,85,47,0)}
   }
 
-  .controls{display:flex;gap:8px;flex-wrap:wrap}
+  .controls{display:flex;flex-direction:column;gap:9px}
+  .step-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px}
   .step{font-family:inherit;font-size:12.5px;color:#5a534a;background:#fffdfa;border:1px solid #e8e1d5;
-    border-radius:11px;padding:9px 13px;cursor:pointer;font-variant-numeric:tabular-nums;
+    border-radius:11px;padding:9px 2px;cursor:pointer;text-align:center;font-variant-numeric:tabular-nums;
     transition:background .16s,border-color .16s,transform .1s}
   .step:hover{background:#f8f3ea;border-color:#ddd4c4}
   .step:active{transform:translateY(1px)}
-  .step.ghost{color:#bd4a2c;background:#fdf3ef;border-color:#eecdc2}
-  .step.ghost:hover{background:#fbe9e2}
 
   .presets{display:flex;flex-direction:column;gap:9px}
   .preset-label{font-size:11px;letter-spacing:.16em;color:#b8b0a1}
@@ -143,7 +142,7 @@
           <circle cx="12" cy="12" r="9.2" stroke="currentColor" stroke-width="1.7"/>
           <circle cx="12" cy="12" r="2.1" fill="currentColor"/>
         </svg>
-        <span>滑 动 时 钟</span>
+        <span>预 约 倒 计 时</span>
       </div>
       <h1>从现在，到你心里的那一刻</h1>
       <p class="sub">拖动表盘选一个时刻，顺便知道中间还隔着多少小时、多少分钟。</p>
@@ -219,11 +218,19 @@
       </div>
 
       <div class="controls">
-        <button class="step" type="button" data-step="-5">− 5 分</button>
-        <button class="step" type="button" data-step="-1">− 1 分</button>
-        <button class="step" type="button" data-step="1">+ 1 分</button>
-        <button class="step" type="button" data-step="5">+ 5 分</button>
-        <button class="step ghost" type="button" id="nowBtn">此刻</button>
+        <span class="preset-label">微调 · 分钟</span>
+        <div class="step-grid">
+          <button class="step" type="button" data-step="-30">− 30</button>
+          <button class="step" type="button" data-step="-15">− 15</button>
+          <button class="step" type="button" data-step="-10">− 10</button>
+          <button class="step" type="button" data-step="-5">− 5</button>
+          <button class="step" type="button" data-step="-1">− 1</button>
+          <button class="step" type="button" data-step="1">+ 1</button>
+          <button class="step" type="button" data-step="5">+ 5</button>
+          <button class="step" type="button" data-step="10">+ 10</button>
+          <button class="step" type="button" data-step="15">+ 15</button>
+          <button class="step" type="button" data-step="30">+ 30</button>
+        </div>
       </div>
 
       <div class="presets">
@@ -486,13 +493,6 @@
 
   Array.prototype.forEach.call(document.querySelectorAll('[data-step]'), function (b) {
     b.addEventListener('click', function () { nudge(Number(b.dataset.step)); });
-  });
-
-  document.getElementById('nowBtn').addEventListener('click', function () {
-    var n = new Date();
-    target = n.getHours() * 60 + n.getMinutes();
-    offset = 0;
-    render();
   });
 
   Array.prototype.forEach.call(document.querySelectorAll('[data-preset]'), function (b) {
