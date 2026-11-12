@@ -32,13 +32,12 @@
 
   .head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap}
   .head-text{min-width:0}
-  .nav-link{flex:none;display:inline-flex;align-items:center;gap:7px;margin-top:16px;
+  .nav{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+  .nav-link{display:inline-flex;align-items:center;gap:7px;
     font-size:12.5px;color:#7d766a;text-decoration:none;letter-spacing:.02em;
     padding:9px 15px;border-radius:999px;border:1px solid #e8e1d5;background:#fffdfa;
     transition:color .16s,border-color .16s,background .16s,box-shadow .16s}
-  .nav-link span{color:#c9552f;transition:transform .16s}
   .nav-link:hover{color:#c9552f;border-color:#eecdc2;background:#fdf3ef;box-shadow:0 5px 14px -9px rgba(201,85,47,.6)}
-  .nav-link:hover span{transform:translateX(2px)}
 
   .board{
     margin-top:clamp(22px,3.6vw,36px);
@@ -149,7 +148,10 @@
       <h1>从现在，到你心里的那一刻</h1>
       <p class="sub">拖动表盘选一个时刻，顺便知道中间还隔着多少小时、多少分钟。</p>
     </div>
-    <a class="nav-link" href="countdown/">倒数日 <span aria-hidden="true">→</span></a>
+    <nav class="nav">
+      <a class="nav-link" href="calendar/">万年历</a>
+      <a class="nav-link" href="countdown/">倒数日</a>
+    </nav>
   </header>
 
   <main class="board">
