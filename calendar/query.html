@@ -52,8 +52,14 @@ a{color:inherit}
 .sec-head h1{font-family:var(--serif);font-size:24px;font-weight:600;margin:0;letter-spacing:.04em}
 .sec-head .hint{font-size:13px;color:var(--ink-3)}
 .sec-head .spacer{flex:1}
-.tolink{font-size:13px;color:var(--ink-2);text-decoration:none;border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:7px 14px;transition:.18s}
-.tolink:hover{border-color:var(--ink-3);color:var(--ink);transform:translateY(-1px)}
+.tolinks{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tolink{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:#7d766a;text-decoration:none;
+  letter-spacing:.02em;background:#fffdfa;border:1px solid #e8e1d5;border-radius:999px;padding:9px 15px;
+  transition:color .16s,border-color .16s,background .16s,box-shadow .16s}
+.tolink span{color:#c9552f;transition:transform .16s}
+.tolink:hover{color:#c9552f;border-color:#eecdc2;background:#fdf3ef;
+  box-shadow:0 5px 14px -9px rgba(201,85,47,.6)}
+.tolink:hover span{transform:translateX(2px)}
 
 /* panel */
 .panel{background:var(--panel-2);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px}
@@ -147,7 +153,11 @@ footer.foot{margin-top:30px;display:flex;flex-direction:column;align-items:cente
     <h1>日期查询</h1>
     <span class="hint">公历 ↔ 农历，查四柱、节气、星宿、纳音</span>
     <div class="spacer"></div>
-    <a class="tolink" href="./index.html">去看万年历 →</a>
+    <div class="tolinks">
+      <a class="tolink" href="./index.html">万年历 <span aria-hidden="true">→</span></a>
+      <a class="tolink" href="../countdown/">倒数日 <span aria-hidden="true">→</span></a>
+      <a class="tolink" href="../">滑动时钟 <span aria-hidden="true">→</span></a>
+    </div>
   </div>
 
   <section class="panel">
