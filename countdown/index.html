@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>倒数日 · 距离那一天还有多少天</title>
+<meta name="description" content="选一个日期，立刻看到已经过去多少天、或者还要等多少天。支持日期选择、月历点选、周数与月份换算。" />
+<meta name="theme-color" content="#f7f5f1" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20x='5'%20y='7'%20width='22'%20height='20'%20rx='5'%20fill='%23fffdfa'%20stroke='%23c9552f'%20stroke-width='2'/%3E%3Cpath%20d='M5%2013.5h22'%20stroke='%23c9552f'%20stroke-width='2'/%3E%3Ccircle%20cx='16'%20cy='20.5'%20r='2.6'%20fill='%23c9552f'/%3E%3C/svg%3E" />
+<style>
+  *,*::before,*::after{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;min-height:100vh;
+    font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    color:#1a1917;background:#f7f5f1;
+    background-image:radial-gradient(1100px 520px at 50% -200px,#fffdf7 0%,rgba(255,253,247,0) 72%);
+    -webkit-font-smoothing:antialiased;
+  }
+  .glow{position:fixed;left:0;right:0;bottom:0;height:58vh;pointer-events:none;z-index:0;
+    background:
+      radial-gradient(560px 280px at 16% 104%,rgba(224,160,92,.13),transparent 70%),
+      radial-gradient(620px 300px at 88% 96%,rgba(201,85,47,.09),transparent 70%);
+  }
+  .wrap{position:relative;z-index:1;width:100%;max-width:1000px;margin:0 auto;padding:clamp(28px,5vw,58px) clamp(18px,4vw,32px) 52px}
+
+  .brand{display:flex;align-items:center;gap:8px;font-size:11.5px;letter-spacing:.2em;color:#a59c8d}
+  .brand svg{width:17px;height:17px;color:#c9552f;flex:none}
+  h1{margin:16px 0 0;font-size:clamp(21px,3.1vw,30px);line-height:1.3;font-weight:600;letter-spacing:-.01em;color:#1a1917}
+  .sub{margin:10px 0 0;font-size:14px;line-height:1.75;color:#8f8879;max-width:32em}
+
+  .head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap}
+  .head-text{min-width:0}
+  .nav-link{flex:none;display:inline-flex;align-items:center;gap:7px;margin-top:16px;
+    font-size:12.5px;color:#7d766a;text-decoration:none;letter-spacing:.02em;
+    padding:9px 15px;border-radius:999px;border:1px solid #e8e1d5;background:#fffdfa;
+    transition:color .16s,border-color .16s,background .16s,box-shadow .16s}
+  .nav-link span{color:#c9552f;transition:transform .16s}
+  .nav-link:hover{color:#c9552f;border-color:#eecdc2;background:#fdf3ef;box-shadow:0 5px 14px -9px rgba(201,85,47,.6)}
+  .nav-link:hover span{transform:translateX(-2px)}
+
+  .board{
+    margin-top:clamp(22px,3.6vw,36px);
+    background:#fffdfa;border:1px solid #ece5d9;border-radius:28px;
+    padding:clamp(18px,3vw,30px);
+    box-shadow:0 30px 72px -44px rgba(74,56,36,.42),0 2px 8px rgba(74,56,36,.03);
+  }
+
+  .toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    padding-bottom:clamp(14px,2.2vw,18px);border-bottom:1px dashed #ece5d9}
+  .date-field{display:flex;align-items:center;gap:9px;padding:8px 13px;border:1px solid #e8e1d5;
+    border-radius:12px;background:#fffefb;transition:border-color .16s,box-shadow .16s}
+  .date-field:focus-within{border-color:#e0b9a8;box-shadow:0 0 0 3px rgba(201,85,47,.10)}
+  .date-field svg{width:15px;height:15px;color:#b0a798;flex:none}
+  .date-field input{border:0;background:transparent;outline:none;font-family:inherit;
+    font-size:13.5px;color:#3b3630;font-variant-numeric:tabular-nums;letter-spacing:.02em;padding:0;width:126px}
+  input[type=date]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:.5;margin-left:2px}
+  input[type=date]::-webkit-calendar-picker-indicator:hover{opacity:.9}
+
+  .chips{display:flex;gap:7px;flex-wrap:wrap;margin-left:auto}
+  .chips button{font-family:inherit;font-size:12px;color:#7d766a;background:#f7f3ea;border:1px solid transparent;
+    border-radius:999px;padding:7px 13px;cursor:pointer;font-variant-numeric:tabular-nums;
+    transition:background .16s,color .16s,border-color .16s}
+  .chips button:hover{background:#f1e9db;color:#3b3630}
+  .chips button.on{background:#fdf3ef;color:#c9552f;border-color:#eecdc2;font-weight:600}
+
+  .body{display:grid;grid-template-columns:minmax(0,1fr) 296px;gap:clamp(22px,3.6vw,44px);
+    align-items:center;padding-top:clamp(18px,3vw,30px)}
+
+  .hero{min-width:0}
+  .status{font-size:11.5px;letter-spacing:.24em;color:#a89d8c;transition:color .2s}
+  .status.past{color:#a8863c}
+  .status.future{color:#c9552f}
+  .big{display:flex;align-items:baseline;gap:9px;margin-top:8px;min-height:1em}
+  .big b{font-size:clamp(56px,8.6vw,86px);line-height:.94;font-weight:600;letter-spacing:-.035em;
+    font-variant-numeric:tabular-nums;color:#1a1917}
+  .big i{font-style:normal;font-size:14.5px;color:#9c9485;letter-spacing:.04em}
+  .big .word{font-size:clamp(46px,7vw,68px);letter-spacing:.02em}
+
+  .target-line{margin-top:12px;font-size:13px;color:#8f8879;letter-spacing:.01em}
+  .target-line b{color:#4a4640;font-weight:600}
+
+  .stats{display:flex;gap:clamp(16px,3vw,38px);flex-wrap:wrap;
+    margin-top:clamp(18px,2.8vw,28px);padding-top:clamp(15px,2.4vw,22px);border-top:1px dashed #ece5d9}
+  .stat{display:flex;flex-direction:column;gap:5px}
+  .stat span{font-size:11px;color:#b3aa9b;letter-spacing:.08em}
+  .stat b{font-size:13.5px;font-weight:600;color:#4a4640;font-variant-numeric:tabular-nums}
+
+  .cal-wrap{background:#fbf8f2;border:1px solid #f0e9dd;border-radius:20px;padding:13px}
+  .cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+  .cal-head button{width:28px;height:28px;border-radius:9px;border:1px solid #e8e1d5;background:#fffdfa;
+    color:#8f8879;cursor:pointer;font-size:15px;line-height:1;padding:0 0 2px;font-family:inherit;
+    transition:background .14s,color .14s,border-color .14s}
+  .cal-head button:hover{background:#f4efe6;color:#c9552f;border-color:#e9cfc3}
+  .cal-title{font-size:13px;font-weight:600;color:#3b3630;letter-spacing:.02em;font-variant-numeric:tabular-nums}
+  .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+  .cal-dow{font-size:10.5px;color:#bab1a1;text-align:center;padding:4px 0 5px}
+  .cal-day{height:31px;border:0;background:transparent;border-radius:9px;font-family:inherit;
+    font-size:12.5px;color:#5a534a;cursor:pointer;font-variant-numeric:tabular-nums;
+    transition:background .14s,color .14s,box-shadow .14s}
+  .cal-day.blank{cursor:default}
+  .cal-day:hover{background:#f1e9db}
+  .cal-day.today{box-shadow:inset 0 0 0 1px #dcc9a6;color:#a8863c;font-weight:600}
+  .cal-day.on{background:#c9552f;color:#fff;font-weight:600;box-shadow:none}
+  .cal-day.on:hover{background:#bf4c28}
+  .cal-tip{margin:9px 0 1px;font-size:10.5px;color:#bab1a1;text-align:center;letter-spacing:.02em}
+
+  .foot{margin-top:22px;display:flex;gap:9px;flex-wrap:wrap;justify-content:center;
+    font-size:11.5px;color:#b8b0a1;text-align:center}
+
+  @media (max-width:820px){
+    .board{border-radius:24px}
+    .body{grid-template-columns:minmax(0,1fr);gap:24px}
+    .cal-wrap{width:100%;max-width:330px;margin:0 auto;order:-1}
+    .chips{margin-left:0}
+    .big b{font-size:62px}
+    .foot{font-size:11px}
+  }
+</style>
+</head>
+<body>
+<div class="glow" aria-hidden="true"></div>
+
+<div class="wrap">
+  <header class="head">
+    <div class="head-text">
+      <div class="brand">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="3.6" y="5.4" width="16.8" height="15" rx="3.4" stroke="currentColor" stroke-width="1.7"/>
+          <path d="M3.6 10h16.8" stroke="currentColor" stroke-width="1.7"/>
+          <circle cx="12" cy="15.2" r="2.1" fill="currentColor"/>
+        </svg>
+        <span>倒 数 日</span>
+      </div>
+      <h1>把日子，数清楚</h1>
+      <p class="sub">选一个日期，看看已经过了多少天，或者还要等多少天。</p>
+    </div>
+    <a class="nav-link" href="../"><span aria-hidden="true">←</span> 滑动时钟</a>
+  </header>
+
+  <main class="board">
+    <div class="toolbar">
+      <label class="date-field">
+        <input type="date" id="di" aria-label="选择日期" />
+      </label>
+      <div class="chips" id="chips">
+        <button type="button" data-act="today">今天</button>
+        <button type="button" data-date="2026-01-01">2026-01-01</button>
+        <button type="button" data-date="2026-12-31">2026-12-31</button>
+        <button type="button" data-act="plus100">100 天后</button>
+      </div>
+    </div>
+
+    <div class="body">
+      <section class="hero">
+        <div class="status" id="status">还有</div>
+        <div class="big" id="big"><b>49</b><i>天</i></div>
+        <div class="target-line" id="targetLine">2026 年 12 月 31 日 · 周四</div>
+        <div class="stats">
+          <div class="stat"><span>折 合</span><b id="stWeeks">7 周 0 天</b></div>
+          <div class="stat"><span>约</span><b id="stMonths">1 个月 19 天</b></div>
+          <div class="stat"><span>一年中的第</span><b id="stDoy">365 天</b></div>
+        </div>
+      </section>
+
+      <aside class="cal-wrap">
+        <div class="cal-head">
+          <button type="button" id="prevM" aria-label="上个月">‹</button>
+          <div class="cal-title" id="calTitle">2026 年 12 月</div>
+          <button type="button" id="nextM" aria-label="下个月">›</button>
+        </div>
+        <div class="cal" id="cal" role="grid" aria-label="日历"></div>
+        <p class="cal-tip">点任意日期即可切换</p>
+      </aside>
+    </div>
+  </main>
+
+  <footer class="foot">
+    <span>按自然日计算，不含时分秒</span><span>·</span>
+    <span>全部在本地运算，不上传任何数据</span>
+  </footer>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var WEEK = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+  var DOW  = ['一', '二', '三', '四', '五', '六', '日'];
+
+  var di        = document.getElementById('di');
+  var statusEl  = document.getElementById('status');
+  var bigEl     = document.getElementById('big');
+  var targetEl  = document.getElementById('targetLine');
+  var stWeeks   = document.getElementById('stWeeks');
+  var stMonths  = document.getElementById('stMonths');
+  var stDoy     = document.getElementById('stDoy');
+  var cal       = document.getElementById('cal');
+  var calTitle  = document.getElementById('calTitle');
+  var chips     = document.getElementById('chips');
+
+  var today = strip(new Date());
+  var target = new Date(today.getFullYear(), 11, 31);
+  var viewY = target.getFullYear();
+  var viewM = target.getMonth();
+
+  function p2(n) { return (n < 10 ? '0' : '') + n; }
+  function strip(d) { var x = new Date(d); x.setHours(0, 0, 0, 0); return x; }
+  function iso(d) { return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()); }
+  function parseISO(s) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+    if (!m) return null;
+    var d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    return isNaN(d.getTime()) ? null : d;
+  }
+  function dayDiff(a, b) {
+    return Math.round((Date.UTC(a.getFullYear(), a.getMonth(), a.getDate()) -
+                       Date.UTC(b.getFullYear(), b.getMonth(), b.getDate())) / 86400000);
+  }
+  function addDays(d, n) { var x = new Date(d); x.setDate(x.getDate() + n); return strip(x); }
+
+  function renderCal() {
+    calTitle.textContent = viewY + ' 年 ' + (viewM + 1) + ' 月';
+    var html = '';
+    for (var i = 0; i < 7; i++) html += '<div class="cal-dow">' + DOW[i] + '</div>';
+
+    var first = new Date(viewY, viewM, 1);
+    var lead = (first.getDay() + 6) % 7;
+    for (var b = 0; b < lead; b++) html += '<div class="cal-day blank"></div>';
+
+    var total = new Date(viewY, viewM + 1, 0).getDate();
+    for (var d = 1; d <= total; d++) {
+      var isToday = viewY === today.getFullYear() && viewM === today.getMonth() && d === today.getDate();
+      var isOn = viewY === target.getFullYear() && viewM === target.getMonth() && d === target.getDate();
+      var cls = 'cal-day' + (isToday ? ' today' : '') + (isOn ? ' on' : '');
+      html += '<button type="button" class="' + cls + '" data-d="' + d + '" role="gridcell">' + d + '</button>';
+    }
+    cal.innerHTML = html;
+  }
+
+  function render() {
+    today = strip(new Date());
+    var diff = dayDiff(target, today);
+    var abs = Math.abs(diff);
+
+    /* 状态与天数 */
+    if (diff > 0) {
+      statusEl.textContent = '还有';
+      statusEl.className = 'status future';
+      bigEl.innerHTML = '<b>' + abs.toLocaleString('en-US') + '</b><i>天</i>';
+    } else if (diff < 0) {
+      statusEl.textContent = '已经过去';
+      statusEl.className = 'status past';
+      bigEl.innerHTML = '<b>' + abs.toLocaleString('en-US') + '</b><i>天</i>';
+    } else {
+      statusEl.textContent = '就是今天';
+      statusEl.className = 'status';
+      bigEl.innerHTML = '<b>0</b><i>天</i>';
+    }
+
+    targetEl.innerHTML = '<b>' + target.getFullYear() + ' 年 ' + (target.getMonth() + 1) + ' 月 ' +
+      target.getDate() + ' 日</b> · ' + WEEK[target.getDay()];
+
+    /* 换算 */
+    stWeeks.textContent = Math.floor(abs / 7) + ' 周 ' + (abs % 7) + ' 天';
+
+    var from = diff < 0 ? target : today;
+    var to   = diff < 0 ? today : target;
+    var mo = (to.getFullYear() - from.getFullYear()) * 12 + (to.getMonth() - from.getMonth());
+    var tmp = new Date(from.getFullYear(), from.getMonth() + mo, from.getDate());
+    if (tmp > to) { mo -= 1; tmp = new Date(from.getFullYear(), from.getMonth() + mo, from.getDate()); }
+    var rest = dayDiff(to, tmp);
+    stMonths.textContent = (mo > 0 ? mo + ' 个月 ' : '') + rest + ' 天';
+
+    var doy = dayDiff(target, new Date(target.getFullYear(), 0, 1)) + 1;
+    stDoy.textContent = doy + ' 天';
+
+    /* 输入框与快捷项状态 */
+    if (di.value !== iso(target)) di.value = iso(target);
+    for (var i = 0; i < chips.children.length; i++) {
+      var b = chips.children[i];
+      var on = b.dataset.date === iso(target);
+      b.classList.toggle('on', !!on);
+    }
+
+    renderCal();
+  }
+
+  function setTarget(d, keepView) {
+    target = strip(d);
+    if (!keepView) { viewY = target.getFullYear(); viewM = target.getMonth(); }
+    render();
+    try { history.replaceState(null, '', '#' + iso(target)); } catch (e) {}
+  }
+
+  /* 交互 */
+  di.addEventListener('change', function () {
+    var d = parseISO(di.value);
+    if (d) setTarget(d); else render();
+  });
+
+  chips.addEventListener('click', function (e) {
+    var b = e.target.closest('button');
+    if (!b) return;
+    if (b.dataset.date) { setTarget(parseISO(b.dataset.date)); return; }
+    if (b.dataset.act === 'today') { setTarget(new Date()); return; }
+    if (b.dataset.act === 'plus100') { setTarget(addDays(new Date(), 100)); return; }
+  });
+
+  cal.addEventListener('click', function (e) {
+    var b = e.target.closest('.cal-day[data-d]');
+    if (!b) return;
+    setTarget(new Date(viewY, viewM, Number(b.dataset.d)), true);
+  });
+
+  document.getElementById('prevM').addEventListener('click', function () {
+    viewM -= 1;
+    if (viewM < 0) { viewM = 11; viewY -= 1; }
+    renderCal();
+  });
+  document.getElementById('nextM').addEventListener('click', function () {
+    viewM += 1;
+    if (viewM > 11) { viewM = 0; viewY += 1; }
+    renderCal();
+  });
+
+  /* 初始化 */
+  var fromHash = parseISO((location.hash || '').replace('#', ''));
+  if (fromHash) { target = fromHash; viewY = target.getFullYear(); viewM = target.getMonth(); }
+  render();
+  setInterval(render, 30000);   // 跨天自动刷新
+})();
+</script>
+</body>
+</html>
